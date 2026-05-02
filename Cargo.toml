@@ -16,10 +16,8 @@ build = "build.rs"
 
 [features]
 default = ["bundled", "desktop"]
-bundled = ["matrix-sdk/bundled-sqlite", "rustls-tls"]
+bundled = ["matrix-sdk/bundled-sqlite"]
 desktop = ["dep:notify-rust", "modalkit/clipboard"]
-native-tls = ["matrix-sdk/native-tls"]
-rustls-tls = ["matrix-sdk/rustls-tls"]
 
 [build-dependencies.vergen-gitcl]
 version = "9"
@@ -107,6 +105,16 @@ pretty_assertions = "1.4.0"
 inherits = "release"
 incremental = false
 lto = true
+
+[patch.crates-io]
+matrix-sdk = { git = "https:/github.com//matrix-org/matrix-rust-sdk", rev = "211c9a7e05dc108d235a6c8301f503f4f77fa028" }
+matrix-sdk-base = { git = "https:/github.com//matrix-org/matrix-rust-sdk", rev = "211c9a7e05dc108d235a6c8301f503f4f77fa028" }
+matrix-sdk-common = { git = "https:/github.com//matrix-org/matrix-rust-sdk", rev = "211c9a7e05dc108d235a6c8301f503f4f77fa028" }
+matrix-sdk-crypto = { git = "https:/github.com//matrix-org/matrix-rust-sdk", rev = "211c9a7e05dc108d235a6c8301f503f4f77fa028" }
+matrix-sdk-indexeddb = { git = "https:/github.com//matrix-org/matrix-rust-sdk", rev = "211c9a7e05dc108d235a6c8301f503f4f77fa028" }
+matrix-sdk-sqlite = { git = "https:/github.com//matrix-org/matrix-rust-sdk", rev = "211c9a7e05dc108d235a6c8301f503f4f77fa028" }
+matrix-sdk-store-encryption = { git = "https:/github.com//matrix-org/matrix-rust-sdk", rev = "211c9a7e05dc108d235a6c8301f503f4f77fa028" }
+matrix-sdk-ui = { git = "https:/github.com//matrix-org/matrix-rust-sdk", rev = "211c9a7e05dc108d235a6c8301f503f4f77fa028" }
 
 [package.metadata.deb]
 section = "net"
