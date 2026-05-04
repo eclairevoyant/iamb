@@ -12,16 +12,18 @@
     };
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    crane,
-    flake-utils,
-    fenix,
-    ...
-  }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      crane,
+      flake-utils,
+      fenix,
+      ...
+    }:
     flake-utils.lib.eachDefaultSystem (
-      system: let
+      system:
+      let
         pkgs = nixpkgs.legacyPackages.${system};
         inherit (pkgs) lib;
 
@@ -66,52 +68,61 @@
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
         # Build the actual crate
-        iamb = craneLib.buildPackage (commonArgs // {
-          inherit cargoArtifacts;
+        iamb = craneLib.buildPackage (
+          commonArgs
+          // {
+            inherit cargoArtifacts;
 
-          nativeBuildInputs = [ pkgs.installShellFiles ];
-          postInstall = ''
-            mkdir -p completions
-            ./target/release/iamb --completions zsh > completions/_iamb
-            ./target/release/iamb --completions bash > completions/iamb.bash
-            ./target/release/iamb --completions fish > completions/iamb.fish
-            installShellCompletion --cmd iamb completions/*
+            nativeBuildInputs = [ pkgs.installShellFiles ];
+            postInstall = ''
+              mkdir -p completions
+              ./target/release/iamb --completions zsh > completions/_iamb
+              ./target/release/iamb --completions bash > completions/iamb.bash
+              ./target/release/iamb --completions fish > completions/iamb.fish
+              installShellCompletion --cmd iamb completions/*
 
-            installManPage $src/docs/iamb.{1,5}
-            install -D $src/docs/iamb.svg -t $out/share/icons/hicolor/scalable/apps
-            install -D $src/docs/iamb.metainfo.xml $out/share/appdata/chat.iamb.iamb.appdata.xml
-            install -D $src/iamb.desktop -t $out/share/applications
-          '';
+              installManPage $src/docs/iamb.{1,5}
+              install -D $src/docs/iamb.svg -t $out/share/icons/hicolor/scalable/apps
+              install -D $src/docs/iamb.metainfo.xml $out/share/appdata/chat.iamb.iamb.appdata.xml
+              install -D $src/iamb.desktop -t $out/share/applications
+            '';
 
-          meta = {
-            description = "Matrix client for Vim addicts";
-            mainProgram = "iamb";
-            homepage = "https://github.com/ulyssa/iamb";
-            license = lib.licenses.asl20;
-          };
-        });
+            meta = {
+              description = "Matrix client for Vim addicts";
+              mainProgram = "iamb";
+              homepage = "https://github.com/ulyssa/iamb";
+              license = lib.licenses.asl20;
+            };
+          }
+        );
       in
       {
         checks = {
           # Build the crate as part of `nix flake check`
           inherit iamb;
 
-          iamb-clippy = craneLib.cargoClippy (commonArgs
+          iamb-clippy = craneLib.cargoClippy (
+            commonArgs
+
             // {
               inherit cargoArtifacts;
               cargoClippyExtraArgs = "--all-targets -- --deny warnings";
-            });
+            }
+          );
 
           iamb-fmt = craneLibNightly.cargoFmt {
             inherit src;
           };
 
-          iamb-nextest = craneLib.cargoNextest (commonArgs
+          iamb-nextest = craneLib.cargoNextest (
+            commonArgs
+
             // {
               inherit cargoArtifacts;
               partitions = 1;
               partitionType = "count";
-            });
+            }
+          );
         };
 
         packages.default = iamb;
@@ -136,5 +147,48 @@
           '';
         };
       }
-    );
+    )
+    // {
+      overlays.default =
+        f: _p:
+        let
+          rustToolchain = fenix.packages.${f.stdenv.hostPlatform.system}.fromToolchainFile {
+            file = ./rust-toolchain.toml;
+            # When the file changes, this hash must be updated.
+            sha256 = "sha256-SBKjxhC6zHTu0SyJwxLlQHItzMzYZ71VCWQC2hOzpRY=";
+          };
+
+          craneLib = (crane.mkLib f).overrideToolchain rustToolchain;
+
+          src = f.lib.fileset.toSource {
+            root = ./.;
+            fileset = f.lib.fileset.unions [
+              (craneLib.fileset.commonCargoSources ./.)
+              ./src/windows/welcome.md
+            ];
+          };
+
+          commonArgs = {
+            inherit src;
+            strictDeps = true;
+            pname = "iamb";
+            version = self.shortRev or self.dirtyShortRev;
+          };
+
+          # Build *just* the cargo dependencies, so we can reuse
+          # all of that work (e.g. via cachix) when running in CI
+          cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+          # Build the actual crate
+          iamb = craneLib.buildPackage (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+            }
+          );
+        in
+        {
+          inherit iamb;
+        };
+    };
 }
