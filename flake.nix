@@ -98,20 +98,26 @@
           # Build the crate as part of `nix flake check`
           inherit iamb;
 
-          iamb-clippy = craneLib.cargoClippy (commonArgs // {
-            inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--all-targets -- --deny warnings";
-          });
+          iamb-clippy = craneLib.cargoClippy (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              cargoClippyExtraArgs = "--all-targets -- --deny warnings";
+            }
+          );
 
           iamb-fmt = craneLibNightly.cargoFmt {
             inherit src;
           };
 
-          iamb-nextest = craneLib.cargoNextest (commonArgs // {
-            inherit cargoArtifacts;
-            partitions = 1;
-            partitionType = "count";
-          });
+          iamb-nextest = craneLib.cargoNextest (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              partitions = 1;
+              partitionType = "count";
+            }
+          );
         };
 
         packages.default = iamb;
@@ -136,5 +142,48 @@
           '';
         };
       }
-    );
+    )
+    // {
+      overlays.default =
+        f: _p:
+        let
+          rustToolchain = fenix.packages.${f.stdenv.hostPlatform.system}.fromToolchainFile {
+            file = ./rust-toolchain.toml;
+            # When the file changes, this hash must be updated.
+            sha256 = "sha256-SBKjxhC6zHTu0SyJwxLlQHItzMzYZ71VCWQC2hOzpRY=";
+          };
+
+          craneLib = (crane.mkLib f).overrideToolchain rustToolchain;
+
+          src = f.lib.fileset.toSource {
+            root = ./.;
+            fileset = f.lib.fileset.unions [
+              (craneLib.fileset.commonCargoSources ./.)
+              ./src/windows/welcome.md
+            ];
+          };
+
+          commonArgs = {
+            inherit src;
+            strictDeps = true;
+            pname = "iamb";
+            version = self.shortRev or self.dirtyShortRev;
+          };
+
+          # Build *just* the cargo dependencies, so we can reuse
+          # all of that work (e.g. via cachix) when running in CI
+          cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+
+          # Build the actual crate
+          iamb = craneLib.buildPackage (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+            }
+          );
+        in
+        {
+          inherit iamb;
+        };
+    };
 }
