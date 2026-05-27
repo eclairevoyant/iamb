@@ -1,6 +1,5 @@
 {
   description = "iamb";
-  nixConfig.bash-prompt = "\[nix-develop\]$ ";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
