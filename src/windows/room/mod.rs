@@ -678,14 +678,14 @@ impl RoomState {
             Some(EncryptionState::Encrypted) => {
                 if store.application.settings.tunables.encryption_indicator.encrypted {
                     spans.push(Span::styled(
-                        " \u{1F512}\u{FE0E}",
+                        " \u{1F512}",
                         Style::new().fg(Color::LightGreen),
                     ));
                 }
             },
             Some(EncryptionState::NotEncrypted) => {
                 if store.application.settings.tunables.encryption_indicator.unencrypted {
-                    spans.push(Span::styled(" \u{1F513}\u{FE0E}", Style::new().fg(Color::Red)));
+                    spans.push(Span::styled(" \u{1F513}", Style::new().fg(Color::Red)));
                 }
             },
             _ => (),
