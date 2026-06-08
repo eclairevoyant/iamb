@@ -9,6 +9,10 @@
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    rust-manifest = {
+      url = "https://static.rust-lang.org/dist/channel-rust-1.93.1.toml";
+      flake = false;
+    };
   };
 
   outputs =
@@ -18,6 +22,7 @@
       crane,
       flake-utils,
       fenix,
+      rust-manifest,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -120,11 +125,7 @@
       overlays.default =
         f: _p:
         let
-          rustToolchain = fenix.packages.${f.stdenv.hostPlatform.system}.fromToolchainFile {
-            file = ./rust-toolchain.toml;
-            # When the file changes, this hash must be updated.
-            sha256 = "sha256-SBKjxhC6zHTu0SyJwxLlQHItzMzYZ71VCWQC2hOzpRY=";
-          };
+          rustToolchain = (fenix.packages.${f.stdenv.hostPlatform.system}.fromManifestFile rust-manifest).toolchain;
 
           craneLib = (crane.mkLib f).overrideToolchain rustToolchain;
 
