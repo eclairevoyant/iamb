@@ -125,7 +125,8 @@
       overlays.default =
         f: _p:
         let
-          rustToolchain = (fenix.packages.${f.stdenv.hostPlatform.system}.fromManifestFile rust-manifest).toolchain;
+          rustToolchain =
+            (fenix.packages.${f.stdenv.hostPlatform.system}.fromManifestFile rust-manifest).toolchain;
 
           craneLib = (crane.mkLib f).overrideToolchain rustToolchain;
 
@@ -142,6 +143,16 @@
             strictDeps = true;
             pname = "iamb";
             version = self.shortRev or self.dirtyShortRev;
+
+            nativeBuildInputs = f.lib.optionals f.stdenv.hostPlatform.isDarwin [
+              # TODO: Remove after #536365
+              f.llvmPackages.lld
+            ];
+
+            env = f.lib.optionalAttrs f.stdenv.hostPlatform.isDarwin {
+              # TODO: Remove after #536365
+              NIX_CFLAGS_LINK = "-fuse-ld=lld";
+            };
           };
 
           # Build *just* the cargo dependencies, so we can reuse
